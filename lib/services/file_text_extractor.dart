@@ -14,11 +14,14 @@ class FileTextExtractor {
       case '.txt':
         return File(path).readAsStringSync();
       case '.pdf':
-        // Utilisation de pdfrx au lieu de pdf_text
         final document = await PdfDocument.openFile(path);
-        final text = await document.extractText();
+        final buffer = StringBuffer();
+        for (int i = 0; i < document.pages.length; i++) {
+          final pageText = await document.pages[i].text;
+          buffer.write(pageText);
+        }
         await document.close();
-        return text.trim();
+        return buffer.toString().trim();
       case '.jpg':
       case '.jpeg':
       case '.png':

@@ -5,8 +5,7 @@ plugins {
 }
 
 android {
-    namespace "com.coreai.app"
-    namespace "com.coreai.app"
+    namespace "com.coreai.app"          // une seule fois
     compileSdk 35
 
     compileOptions {
@@ -20,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId "com.coreai.app"
-        minSdk 31  // Android 12+
+        minSdk 31
         targetSdk 34
         versionCode 1
         versionName "1.0"
