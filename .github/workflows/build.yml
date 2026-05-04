@@ -25,48 +25,38 @@ jobs:
           channel: 'stable'
 
       - name: Get dependencies
-        run: flutter pub get
-
-      - name: Regenerate Android platform (bypass uppercase name issue)
         run: |
-          # Crée un dossier temporaire avec un nom valide (minuscules)
-          TEMP_DIR=$(mktemp -d)
-          echo "Travail dans $TEMP_DIR"
-          
-          # Copie tout le projet (sauf .git)
-          rsync -av --exclude='.git' ./ "$TEMP_DIR/" > /dev/null
-          
-          # Se déplace dans le temporaire
-          cd "$TEMP_DIR"
-          
-          # Recrée la plateforme Android (le nom du dossier peut être modifié temporairement)
-          # On force le nom du projet dans pubspec.yaml en minuscules pour flutter create
-          sed -i 's/name: COREAI/name: coreai/' pubspec.yaml 2>/dev/null || true
-          flutter create --platforms=android .
-          
-          # Copie le dossier android généré vers le projet original
-          cp -r android "$OLDPWD"/
-          
-          # Retour
-          cd "$OLDPWD"
-          
-          # Nettoie
-          rm -rf "$TEMP_DIR"
-          
-          # Rétablit le nom original dans pubspec.yaml (si besoin)
-          sed -i 's/name: coreai/name: COREAI/' pubspec.yaml 2>/dev/null || true
-          
-          echo "✅ Android platform regenerated"
+          # Correction temporaire du nom du paquet dans pubspec.yaml si nécessaire
+          # pour que flutter pub get fonctionne
+          if grep -q "name: COREAI" pubspec.yaml; then
+            sed -i 's/name: COREAI/name: coreai/' pubspec.yaml
+          fi
+          flutter pub get
 
-      - name: Add necessary permissions to AndroidManifest.xml
+      - name: Regenerate Android platform
+        run: |
+          # Supprime l'ancien dossier android problématique
+          rm -rf android/
+          
+          # Recrée la plateforme Android avec un nom de projet valide
+          # L'option --project-name force le nom du paquet Docker
+          flutter create --project-name coreai --platforms=android .
+          
+          echo "✅ Android platform regenerated with project-name coreai"
+
+      - name: Add permissions to AndroidManifest.xml
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Ajoute les permissions si absentes
-          for perm in "android.permission.CAMERA" "android.permission.READ_EXTERNAL_STORAGE" "android.permission.WRITE_EXTERNAL_STORAGE"; do
-            if ! grep -q "$perm" "$MANIFEST"; then
-              sed -i "s|</manifest>|    <uses-permission android:name=\"$perm\"/>\n</manifest>|" "$MANIFEST"
-            fi
-          done
+          # Supprime l'ancienne balise closing </manifest> si elle existe
+          sed -i '/<\/manifest>/d' "$MANIFEST"
+          # Ajoute toutes les permissions d'un coup
+          cat >> "$MANIFEST" << 'EOF'
+      <uses-permission android:name="android.permission.CAMERA"/>
+      <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  </manifest>
+  EOF
+          echo "✅ Permissions added"
 
       - name: Build APK release
         run: flutter build apk --release --target-platform android-arm64,android-x64
