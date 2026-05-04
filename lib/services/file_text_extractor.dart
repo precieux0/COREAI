@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:pdfrx/pdfrx.dart';
 import 'package:path/path.dart' as p;
 
 class FileTextExtractor {
@@ -14,14 +13,8 @@ class FileTextExtractor {
       case '.txt':
         return File(path).readAsStringSync();
       case '.pdf':
-        final document = await PdfDocument.openFile(path);
-        final buffer = StringBuffer();
-        for (int i = 0; i < document.pages.length; i++) {
-          final pageText = await document.pages[i].text;
-          buffer.write(pageText);
-        }
-        await document.close();
-        return buffer.toString().trim();
+        // Support PDF temporairement désactivé pour cause de conflit Gradle
+        return '[PDF] Extraction non disponible dans cette version.';
       case '.jpg':
       case '.jpeg':
       case '.png':
