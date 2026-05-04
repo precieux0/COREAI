@@ -11,19 +11,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-      - run: flutter pub get
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      # ========== PATCH POUR CORRIGER LES ERREURS DE BUILD ==========
+      - name: Patch Gradle files for SDK 35 and namespace
+        run: |
+          echo "🔧 Mise à jour de compileSdk vers 35..."
+          sed -i 's/compileSdk [0-9]*/compileSdk 35/' android/app/build.gradle
+
+          echo "🔧 Ajout du namespace dans android/app/build.gradle..."
+          sed -i '/android {/a\    namespace "com.coreai.app"' android/app/build.gradle
+
+          echo "🔧 Correction du namespace pour le plugin pdf_text..."
+          # Crée un fichier gradle externe qui applique le namespace au plugin
+          mkdir -p ~/gradle_patches
+          cat > ~/gradle_patches/namespace_patch.gradle << 'EOF'
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.hasProperty('android')) {
+                      project.android {
+                          if (namespace == null || namespace.isEmpty()) {
+                              namespace "com.coreai.app.${project.name}"
+                          }
+                      }
+                  }
+              }
+          }
+          EOF
+          # Applique ce patch à la fin du build.gradle racine
+          echo "apply from: \"$HOME/gradle_patches/namespace_patch.gradle\"" >> android/build.gradle
+      # =============================================================
+
       - name: Build APK release
         run: flutter build apk --release --target-platform android-arm64,android-x64
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
