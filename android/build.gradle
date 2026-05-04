@@ -14,7 +14,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }  // nécessaire pour pdf_text
+        maven { url 'https://jitpack.io' }
     }
 }
 
@@ -28,4 +28,17 @@ subprojects {
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
+}
+
+// ✅ Correction automatique des namespaces pour tous les sous-projets (plugins)
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                if (namespace == null || namespace.isEmpty()) {
+                    namespace = "com.coreai.${project.name}"
+                }
+            }
+        }
+    }
 }

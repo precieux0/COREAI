@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace "com.coreai.app"
-    compileSdk 34
+    namespace "com.coreai.app"
+    compileSdk 35
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
