@@ -24,10 +24,8 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
-      - name: Get dependencies
+      - name: Prepare pubspec (fix name)
         run: |
-          # Correction temporaire du nom du paquet dans pubspec.yaml si nécessaire
-          # pour que flutter pub get fonctionne
           if grep -q "name: COREAI" pubspec.yaml; then
             sed -i 's/name: COREAI/name: coreai/' pubspec.yaml
           fi
@@ -35,27 +33,20 @@ jobs:
 
       - name: Regenerate Android platform
         run: |
-          # Supprime l'ancien dossier android problématique
           rm -rf android/
-          
-          # Recrée la plateforme Android avec un nom de projet valide
-          # L'option --project-name force le nom du paquet Docker
           flutter create --project-name coreai --platforms=android .
-          
-          echo "✅ Android platform regenerated with project-name coreai"
+          echo "✅ Android platform regenerated"
 
       - name: Add permissions to AndroidManifest.xml
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # Supprime l'ancienne balise closing </manifest> si elle existe
+          # Supprime toute ligne </manifest> existante
           sed -i '/<\/manifest>/d' "$MANIFEST"
-          # Ajoute toutes les permissions d'un coup
-          cat >> "$MANIFEST" << 'EOF'
-      <uses-permission android:name="android.permission.CAMERA"/>
-      <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-  </manifest>
-  EOF
+          # Ajoute les permissions
+          echo "    <uses-permission android:name=\"android.permission.CAMERA\"/>" >> "$MANIFEST"
+          echo "    <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>" >> "$MANIFEST"
+          echo "    <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>" >> "$MANIFEST"
+          echo "</manifest>" >> "$MANIFEST"
           echo "✅ Permissions added"
 
       - name: Build APK release
