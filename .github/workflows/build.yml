@@ -32,28 +32,26 @@ jobs:
         run: |
           echo "🔧 Mise à jour de compileSdk vers 35..."
           sed -i 's/compileSdk [0-9]*/compileSdk 35/' android/app/build.gradle
-
           echo "🔧 Ajout du namespace dans android/app/build.gradle..."
           sed -i '/android {/a\    namespace "com.coreai.app"' android/app/build.gradle
-
-          echo "🔧 Correction du namespace pour le plugin pdf_text..."
-          # Crée un fichier gradle externe qui applique le namespace au plugin
-          mkdir -p ~/gradle_patches
-          cat > ~/gradle_patches/namespace_patch.gradle << 'EOF'
+          echo "🔧 Correction du namespace pour les plugins sans afterEvaluate conflict..."
+          cat >> android/build.gradle << 'EOF'
+          
+          // Auto-namespace for subprojects (AGP 8.0+ compatibility)
           subprojects {
-              afterEvaluate { project ->
-                  if (project.hasProperty('android')) {
-                      project.android {
-                          if (namespace == null || namespace.isEmpty()) {
-                              namespace "com.coreai.app.${project.name}"
+              if (!project.state.evaluated) {
+                  afterEvaluate { project ->
+                      if (project.hasProperty('android')) {
+                          project.android {
+                              if (namespace == null || namespace.isEmpty()) {
+                                  namespace = project.group.toString() ?: "com.coreai.${project.name}"
+                              }
                           }
                       }
                   }
               }
           }
           EOF
-          # Applique ce patch à la fin du build.gradle racine
-          echo "apply from: \"$HOME/gradle_patches/namespace_patch.gradle\"" >> android/build.gradle
       # =============================================================
 
       - name: Build APK release
